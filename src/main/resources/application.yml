@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: "SpringBootFileManager"
+  main:
+    log-startup-info: false
+    banner-mode: off
+  profiles:
+    active: dev
+root:
+  directory: "C:\\"
+  level: 3
+logging:
+  level:
+    org.springframework: off
+    root: off
