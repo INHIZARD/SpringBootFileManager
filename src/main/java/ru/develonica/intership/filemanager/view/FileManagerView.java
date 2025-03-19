@@ -1,11 +1,13 @@
 package ru.develonica.intership.filemanager.view;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import ru.develonica.intership.filemanager.model.FileNode;
 import ru.develonica.intership.filemanager.model.FileSystemElement;
 import ru.develonica.intership.filemanager.model.annotation.View;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Класс, реализующий отображение в приложении.
@@ -125,6 +127,16 @@ public class FileManagerView {
     private static final int ELEMENT_NAME_SIZE = 50;
 
     /**
+     * Элемент, отвечающий за начало подстроки.
+     */
+    private static final int START_SUBSTRING = 0;
+
+    /**
+     * Элемент, при делении на который получается половина подстроки.
+     */
+    private static final int HALF_SUBSTRING = 2;
+
+    /**
      * Файл.
      */
     private static final String FILE = "file %s";
@@ -200,15 +212,22 @@ public class FileManagerView {
     private static final String CHANGE_OF_SIZE = "X";
 
     /**
-     * Массив, содержащий информацию о ветках файлового дерева.
-     * Если элемент равен {@code true}, то ветка на соответсвующее уровне все еще существует,
-     * аналогично при {@code false} ветка не существует.
+     * Разделитель названия файла и его расширения.
      */
-    private final boolean[] branches;
+    private static final String FILE_SEPARATOR = "\\.";
 
-    @Autowired
-    public FileManagerView(boolean[] branches) {
-        this.branches = branches;
+    /**
+     * Неопределенный файл.
+     */
+    private static final String UNDEFINED_FILE = "undefined";
+
+    /**
+     * Мапа, в которой находятся ключ - расширение, значение - тип файла.
+     */
+    private final Map<String, String> typesOfExtensions;
+
+    public FileManagerView(@Qualifier("fileTypeForExtension") Map<String, String> typesOfExtensions) {
+        this.typesOfExtensions = typesOfExtensions;
     }
 
     /**
@@ -218,18 +237,18 @@ public class FileManagerView {
      */
     public void showFileTree(FileNode fileSystemElements) {
         showLine();
-        branches[START_NESTING_LEVEL] = true;
         System.out.println(fileSystemElements.getNode().getPath());
         for (FileNode child : fileSystemElements.getChildren()) {
             FileSystemElement element = child.getNode();
             if (child == fileSystemElements.getChildren().getLast()) {
-                branches[START_NESTING_LEVEL] = false;
                 System.out.print(BRANCHING_END);
+                showFileSystemElement(element, START_NESTING_LEVEL);
+                showFileTree(child, START_NESTING_LEVEL + 1, ABSENCE_BRANCH);
             } else {
                 System.out.print(BRANCHING_CONTINUE);
+                showFileSystemElement(element, START_NESTING_LEVEL);
+                showFileTree(child, START_NESTING_LEVEL + 1, BRANCH);
             }
-            showFileSystemElement(element, START_NESTING_LEVEL);
-            showFileTree(child, START_NESTING_LEVEL + 1);
         }
     }
 
@@ -354,25 +373,19 @@ public class FileManagerView {
      * @param fileSystemElements объекты
      * @param nestingLevel       уровень вложенности
      */
-    private void showFileTree(FileNode fileSystemElements, int nestingLevel) {
-        branches[nestingLevel] = true;
+    private void showFileTree(FileNode fileSystemElements, int nestingLevel, String prefix) {
         for (FileNode child : fileSystemElements.getChildren()) {
-            for (int i = 0; i < nestingLevel; i++) {
-                if (branches[i]) {
-                    System.out.print(BRANCH);
-                } else {
-                    System.out.print(ABSENCE_BRANCH);
-                }
-            }
+            System.out.print(prefix);
+            FileSystemElement element = child.getNode();
             if (child == fileSystemElements.getChildren().getLast()) {
-                branches[nestingLevel] = false;
                 System.out.print(BRANCHING_END);
+                showFileSystemElement(element, nestingLevel);
+                showFileTree(child, nestingLevel + 1, prefix + ABSENCE_BRANCH);
             } else {
                 System.out.print(BRANCHING_CONTINUE);
+                showFileSystemElement(element, nestingLevel);
+                showFileTree(child, nestingLevel + 1, prefix + BRANCH);
             }
-            FileSystemElement element = child.getNode();
-            showFileSystemElement(element, nestingLevel);
-            showFileTree(child, nestingLevel + 1);
         }
     }
 
@@ -385,7 +398,7 @@ public class FileManagerView {
     private void showFileSystemElement(FileSystemElement element, int nestingLevel) {
         System.out.printf(ELEMENT_INFORMATION,
                 getAbbreviatedName(element.getName(), nestingLevel * ABSENCE_BRANCH.length()),
-                element.getType() ? String.format(FILE, element.getExtensionType()) : DIRECTORY,
+                element.getType() ? String.format(FILE, defineFileType(element.getName())) : DIRECTORY,
                 castSize(element.getSize()),
                 String.format(ATTRIBUTES,
                         element.isReadable() ? READABLE : ABSENCE_ATTRIBUTE,
@@ -405,9 +418,9 @@ public class FileManagerView {
     private String getAbbreviatedName(String fileName, int indent) {
         int size = ELEMENT_NAME_SIZE - indent;
         if (fileName.length() > size) {
-            return fileName.substring(0, size / 2)
+            return fileName.substring(START_SUBSTRING, size / HALF_SUBSTRING)
                     + PASS
-                    + fileName.substring(fileName.length() - size / 2 + PASS.length());
+                    + fileName.substring(fileName.length() - size / HALF_SUBSTRING + PASS.length());
         }
         return String.format(ELEMENT_NAME_WITH_DEFINABLE_SIZE.replaceFirst(CHANGE_OF_SIZE, String.valueOf(size)),
                 fileName);
@@ -426,7 +439,7 @@ public class FileManagerView {
         }
         int unitIndex = 0;
         while (unitIndex < FILE_SIZE_UNITS.length - 1) {
-            if (resultSize > DIFFERENCE_IN_FILE_SIZE_UNITS) {
+            if (resultSize >= DIFFERENCE_IN_FILE_SIZE_UNITS) {
                 resultSize /= DIFFERENCE_IN_FILE_SIZE_UNITS;
                 unitIndex++;
                 continue;
@@ -435,5 +448,16 @@ public class FileManagerView {
             break;
         }
         return String.format(CAST_SIZE_STRING, resultSize, FILE_SIZE_UNITS[unitIndex]);
+    }
+
+    /**
+     * Метод, который по названию файла и исходя из его расширения определяет его тип.
+     *
+     * @param name название файла
+     * @return тип файла
+     */
+    private String defineFileType(String name) {
+        String fileExtension = Arrays.asList(name.split(FILE_SEPARATOR)).getLast().toLowerCase();
+        return typesOfExtensions.getOrDefault(fileExtension, UNDEFINED_FILE);
     }
 }

@@ -6,10 +6,51 @@ spring:
     banner-mode: off
   profiles:
     active: dev
-root:
-  directory: "C:\\"
-  level: 3
 logging:
   level:
-    org.springframework: off
+    org.springframework: error
     root: off
+application:
+  directory: "C:\\"
+  level: 3
+  file-type:
+    picture:
+      - bmp
+      - png
+      - jpeg
+      - jpg
+    text:
+      - txt
+    document:
+      - rtf
+      - doc
+      - docx
+      - pdf
+    video:
+      - avi
+      - mpg
+      - mov
+      - mp4
+    markup:
+      - xml
+      - html
+    system:
+      - sys
+    sql:
+      - sql
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+logging:
+  level:
+    ru.develonica: off
+---
+spring:
+  config:
+    activate:
+      on-profile: logging
+logging:
+  level:
+    ru.develonica: debug

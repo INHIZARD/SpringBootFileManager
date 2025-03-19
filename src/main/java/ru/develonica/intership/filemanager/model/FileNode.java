@@ -1,8 +1,5 @@
 package ru.develonica.intership.filemanager.model;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import ru.develonica.intership.filemanager.model.annotation.Model;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +7,6 @@ import java.util.List;
 /**
  * Класс, реализующий узел в файловом дереве.
  */
-@Model
 public class FileNode {
 
     /**
@@ -22,12 +18,6 @@ public class FileNode {
      * Дочерние объекты.
      */
     private List<FileNode> children;
-
-    @Autowired
-    public FileNode(FileSystemElement node, List<FileNode> children) {
-        this.node = node;
-        this.children = children;
-    }
 
     public FileNode(FileSystemElement node) {
         this.node = node;

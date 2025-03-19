@@ -1,16 +1,10 @@
 package ru.develonica.intership.filemanager.model;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import ru.develonica.intership.filemanager.model.annotation.Model;
-import ru.develonica.intership.filemanager.util.FileType;
-
 import java.nio.file.Path;
 
 /**
  * Класс, реализующий объект файловой системы.
  */
-@Model
 public class FileSystemElement {
 
     /**
@@ -27,11 +21,6 @@ public class FileSystemElement {
      * Тип объекта: файл или директория.
      */
     private boolean type;
-
-    /**
-     * Расширение файла.
-     */
-    private FileType fileType;
 
     /**
      * Размер файла. Для директории — 0.
@@ -64,8 +53,7 @@ public class FileSystemElement {
      *
      * @param path путь
      */
-    @Autowired
-    public FileSystemElement (@Value("${root.directory}") Path path) {
+    public FileSystemElement (Path path) {
         this(path, path.toString(), false);
     }
     
@@ -111,7 +99,6 @@ public class FileSystemElement {
         this.path = path;
         this.name = name;
         this.type = type;
-        this.fileType = FileType.defineFileType(name);
         this.size = size;
         this.isReadable = isReadable;
         this.isWritable = isWritable;
@@ -141,14 +128,6 @@ public class FileSystemElement {
 
     public void setType(boolean type) {
         this.type = type;
-    }
-
-    public String getExtensionType() {
-        return fileType.name().toLowerCase();
-    }
-
-    public void setExtensionType(FileType fileType) {
-        this.fileType = fileType;
     }
 
     public long getSize() {

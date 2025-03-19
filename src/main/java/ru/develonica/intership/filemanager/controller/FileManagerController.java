@@ -1,6 +1,7 @@
 package ru.develonica.intership.filemanager.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.develonica.intership.filemanager.model.annotation.Controller;
 import ru.develonica.intership.filemanager.model.exception.*;
 import ru.develonica.intership.filemanager.model.service.FileManagerService;
@@ -18,6 +19,7 @@ import java.util.Scanner;
  */
 @Controller
 public class FileManagerController {
+
 
     /**
      * Ввод соответствующего значения вызывает создание файла.
@@ -50,6 +52,11 @@ public class FileManagerController {
     private static final String EXIT = "6";
 
     /**
+     * Логгер.
+     */
+    private static final Logger LOG = LoggerFactory.getLogger(FileManagerController.class);
+
+    /**
      * Класс, реализующий отображение информации в приложении.
      *
      * @see FileManagerView
@@ -71,9 +78,10 @@ public class FileManagerController {
     /**
      * В конструкторе проходит стартовая инициализация файлового дерева.
      *
-     * @param fileManagerService путь в стартовую директорию
+     * @param fileManagerService класс сервис
+     * @param scanner            класс сканера для ввода
+     * @param fileManagerView    класс отображение
      */
-    @Autowired
     public FileManagerController(FileManagerService fileManagerService, Scanner scanner,
                                  FileManagerView fileManagerView) {
         this.fileManagerService = fileManagerService;
@@ -93,49 +101,62 @@ public class FileManagerController {
      * <br>5 — обновить список файлов
      * <br>6 — выход
      * </p>
+     *
+     * @param scanLevel уровень вложенности файлов
      */
-    public void startApp() {
+    public void startApp(int scanLevel) {
+        LOG.debug("Начало работы приложения");
         String command;
         boolean runningApp = true;
+        if (scanLevel <= 0) {
+            LOG.error("Ошибка заданного уровня вложенности: {}", scanLevel);
+            fileManagerView.showNestingLevelExceptionMessage(scanLevel);
+            runningApp = false;
+        }
         try {
             fileManagerService.initializeFileStructure();
             fileManagerView.showFileTree(fileManagerService.getFileTree());
         } catch (CreateFileTreeException ex) {
             fileManagerView.showGenerationFileTreeExceptionMessage(ex.getPath());
             runningApp = false;
-        } catch (NestingLevelException ex) {
-            fileManagerView.showNestingLevelExceptionMessage(ex.getNestingLevel());
-            runningApp = false;
         }
         while (runningApp) {
             fileManagerView.showMenuMessage();
             command = scanner.nextLine();
+            LOG.debug("Пользователь ввел команду [{}]", command);
             switch (command) {
                 case FILE_CREATION: {
+                    LOG.debug("Начало попытки создания файла");
                     createFile();
                     break;
                 }
                 case DIRECTORY_CREATION: {
+                    LOG.debug("Начало попытки создания директории");
                     createDirectory();
                     break;
                 }
                 case ELEMENT_DELETE: {
+                    LOG.debug("Начало попытки удаления файла");
                     deleteFileOrDirectory();
                     break;
                 }
                 case CHANGE_DIRECTORY: {
+                    LOG.debug("Начало попытки смены директории");
                     changeDirectory();
                     break;
                 }
                 case UPDATE: {
+                    LOG.debug("Обновление демонстрации файлового дерева");
                     fileManagerView.showFileTree(fileManagerService.getFileTree());
                     break;
                 }
                 case EXIT: {
+                    LOG.debug("Завершение работы приложения");
                     runningApp = false;
                     break;
                 }
                 default: {
+                    LOG.debug("Неверная команда");
                     fileManagerView.showWrongCommandMessage();
                     break;
                 }
@@ -150,6 +171,7 @@ public class FileManagerController {
     private void createFile() {
         fileManagerView.showFileNameCreationMessage();
         String fileName = scanner.nextLine();
+        LOG.debug("Введенный файл для создания [{}]", fileName);
         try {
             fileManagerService.createFile(fileName);
         } catch (CreateFileException ex) {
@@ -163,6 +185,7 @@ public class FileManagerController {
     private void createDirectory() {
         fileManagerView.showDirectoryNameCreationMessage();
         String directoryName = scanner.nextLine();
+        LOG.debug("Введенная директория для создания [{}]", directoryName);
         try {
             fileManagerService.createDirectory(directoryName);
         } catch (CreateDirectoryException ex) {
@@ -176,6 +199,7 @@ public class FileManagerController {
     private void deleteFileOrDirectory() {
         fileManagerView.showFileOrDirectorySelectionMessage();
         String name = scanner.nextLine();
+        LOG.debug("Введенный элемент для удаления [{}]", name);
         try {
             fileManagerService.delete(name);
         } catch (DeleteElementException ex) {
@@ -189,6 +213,7 @@ public class FileManagerController {
     private void changeDirectory() {
         fileManagerView.showDirectoryChangeMessage();
         String directoryName = scanner.nextLine();
+        LOG.debug("Введенная директория для смены [{}]", directoryName);
         try {
             if (directoryName.isEmpty()) {
                 fileManagerService.navigateToParentDirectory();

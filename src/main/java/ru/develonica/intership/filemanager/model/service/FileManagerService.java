@@ -2,7 +2,6 @@ package ru.develonica.intership.filemanager.model.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import ru.develonica.intership.filemanager.model.DirectoryAttributes;
 import ru.develonica.intership.filemanager.model.FileNode;
@@ -38,8 +37,7 @@ public class FileManagerService {
      */
     private final int scanLevel;
 
-    @Autowired
-    public FileManagerService(FileNode fileTree, @Value("${root.level}") int scanLevel) {
+    public FileManagerService(FileNode fileTree, @Value("${application.level}") int scanLevel) {
         this.fileTree = fileTree;
         this.scanLevel = scanLevel;
     }
@@ -48,13 +46,8 @@ public class FileManagerService {
      * Метод, предназначенный для инициализации файлов дерева.
      *
      * @throws CreateFileTreeException ошибка создания файлового дерева
-     * @throws NestingLevelException ошибка заданного уровня вложения
      */
-    public void initializeFileStructure() throws CreateFileTreeException, NestingLevelException {
-        if (scanLevel <= 0) {
-            LOG.error("Уровень вложенности задан неверно: {}", scanLevel);
-            throw new NestingLevelException(scanLevel);
-        }
+    public void initializeFileStructure() throws CreateFileTreeException {
         if (Files.isRegularFile(fileTree.getNode().getPath())) {
             LOG.error("Не получилось проинициализировать файловое дерево, + " +
                             "так как он ведет к файлу, а не к директории: {}",
@@ -197,7 +190,9 @@ public class FileManagerService {
      * Метод, который сканирует установленную корневую директорию в {@code fileTree}.
      */
     private void scanRootDirectory(FileNode node, int level) {
-        for (File element : new File(node.getNode().getPath().toUri()).listFiles()) {
+        File elementByNode = new File(node.getNode().getPath().toUri());
+        File[] elementArray = elementByNode.listFiles();
+        for (File element : elementArray) {
             FileSystemElement newFileSystemElement = new FileSystemElement(
                     element.toPath(),
                     element.getName(),
