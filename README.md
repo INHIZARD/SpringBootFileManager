@@ -1,5 +1,6 @@
 # Файловый менеджер на Spring Boot
-Реализация файлового менеджера на Spring Boot.
+Реализация файлового менеджера на Spring Boot 
+(апдейт проекта https://github.com/INHIZARD/FileManager).
 
 Стек:
 * Java 21
